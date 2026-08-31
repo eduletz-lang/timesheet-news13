@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#161c22">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="לוח שעות">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>לוח שעות</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    --ink:#161c22;
+    --panel:#1d252c;
+    --panel2:#232c34;
+    --line:rgba(232,224,208,0.10);
+    --paper:#e8e0d0;
+    --paper-dim:#a9a291;
+    --brass:#c8963e;
+    --brass-bright:#e0ac52;
+    --shabbat-bg:rgba(200,150,62,0.10);
+    --holiday-bg:rgba(140,70,150,0.14);
+    --holiday:#b47bc4;
+    --empty:#232a30;
+    --danger:#c0604a;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--ink);color:var(--paper);font-family:'Heebo',sans-serif;}
+
+  body{
+    min-height:100vh;
+    padding:28px 16px 60px;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(200,150,62,0.06), transparent 40%),
+      var(--ink);
+  }
+
+  .wrap{max-width:900px;margin:0 auto;}
+
+  header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    padding-bottom:20px;
+    margin-bottom:22px;
+    border-bottom:1px solid var(--line);
+  }
+  .title-block h1{
+    font-family:'Frank Ruhl Libre',serif;
+    font-weight:900;
+    font-size:clamp(28px,5vw,40px);
+    margin:0 0 4px;
+    letter-spacing:0.5px;
+    color:var(--paper);
+  }
+  .title-block .sub{
+    color:var(--paper-dim);
+    font-size:13px;
+    letter-spacing:0.5px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .head-right{display:flex;align-items:center;gap:10px;}
+  .year-switch{display:flex;align-items:center;}
+  .year-select{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    font-weight:700;
+    color:var(--brass-bright);
+    background:var(--panel);
+    border:1px solid var(--brass);
+    border-radius:100px;
+    padding:7px 30px 7px 14px;
+    white-space:nowrap;
+    cursor:pointer;
+    -webkit-appearance:none;
+    appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23e0ac52' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;
+    background-position:left 12px center;
+    outline:none;
+  }
+  .year-select:hover{border-color:var(--brass-bright);}
+  .year-select option{background:var(--panel);color:var(--paper);}
+  .gear-btn{
+    width:36px;height:36px;border-radius:50%;
+    background:var(--panel);border:1px solid var(--line);
+    color:var(--paper-dim);cursor:pointer;font-size:16px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .15s ease;
+  }
+  .gear-btn:hover{border-color:var(--brass);color:var(--brass-bright);transform:rotate(25deg);}
+
+  /* month tabs */
+  .tabs{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:20px;
+  }
+  .tab{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    padding:8px 10px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    color:var(--paper-dim);
+    cursor:pointer;
+    transition:all .15s ease;
+    text-align:center;
+    min-width:44px;
+  }
+  .tab:hover{border-color:var(--brass);color:var(--paper);}
+  .tab.active{
+    background:linear-gradient(160deg,var(--brass-bright),var(--brass));
+    color:#211505;
+    border-color:var(--brass-bright);
+    font-weight:700;
+  }
+  .tab .dot{
+    display:block;
+    font-size:9px;
+    margin-top:2px;
+    opacity:.75;
+  }
+
+  /* summary strip */
+  .summary{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    margin-bottom:22px;
+  }
+  .stat{
+    background:var(--panel);
+    padding:14px 10px;
+    text-align:center;
+  }
+  .stat .num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(15px,3.6vw,21px);
+    font-weight:700;
+    color:var(--brass-bright);
+    display:block;
+  }
+  .stat .lbl{
+    font-size:10.5px;
+    color:var(--paper-dim);
+    letter-spacing:0.4px;
+    margin-top:3px;
+    display:block;
+  }
+
+  /* calendar */
+  .cal-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .cal-head h2{
+    font-family:'Frank Ruhl Libre',serif;
+    font-size:22px;
+    font-weight:700;
+    margin:0;
+    color:var(--paper);
+  }
+  .cal-head .hint{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--paper-dim);
+  }
+
+  .punch-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:10px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:10px 14px;
+    margin-bottom:14px;
+  }
+  .punch-btn{
+    flex:1;padding:10px 0;border-radius:8px;border:none;
+    font-family:'Heebo',sans-serif;font-size:15px;font-weight:700;
+    cursor:pointer;transition:opacity .15s ease, transform .1s ease;
+  }
+  .punch-btn:active{transform:scale(0.96);}
+  .punch-in{background:linear-gradient(135deg,#3a8c5c,#2e7049);color:#fff;}
+  .punch-out{background:linear-gradient(135deg,#8c3a3a,#702e2e);color:#fff;}
+  .punch-time{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--paper-dim);
+    text-align:center;
+    min-width:80px;
+    line-height:1.4;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:3px;
+  }
+  .wd{
+    text-align:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--paper-dim);
+    padding:4px 0 6px;
+    letter-spacing:0.5px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:2px;
+  }
+  .cell{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    min-height:64px;
+    padding:5px 5px 4px;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    cursor:pointer;
+    transition:border-color .15s ease, transform .1s ease;
+    overflow:hidden;
+  }
+  .cell:hover{border-color:var(--brass-bright);}
+  .cell:active{transform:scale(0.97);}
+  .cell.blank{background:transparent;border-color:transparent;cursor:default;}
+  .cell.blank:hover{border-color:transparent;}
+  .cell.off{background:var(--empty);}
+  .cell.work{
+    background:var(--panel2);
+    border-color:rgba(200,150,62,0.35);
+  }
+  .cell.shabbat{
+    background:var(--shabbat-bg);
+    border-color:rgba(200,150,62,0.55);
+  }
+  .cell.holiday{
+    background:var(--holiday-bg);
+    border-color:rgba(180,123,196,0.55);
+  }
+  .cell.vacation{
+    background:rgba(90,160,150,0.12);
+    border-color:rgba(90,160,150,0.5);
+  }
+  .cell.vacation .daynum,.cell.vacation .hours{color:#7fc9bd;}
+  .cell .daynum{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    color:var(--paper-dim);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:2px;
+    line-height:1;
+  }
+  .cell.work .daynum,.cell.shabbat .daynum,.cell.holiday .daynum,.cell.vacation .daynum{color:var(--paper);}
+  .cell .badges{display:flex;gap:1px;font-size:9px;}
+  .cell .flame{color:var(--brass-bright);font-size:10px;}
+  .cell .star{color:var(--holiday);font-size:10px;}
+  .cell .pin{color:#7fb0a8;font-size:9px;}
+  .cell .ot{
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    color:var(--holiday);
+  }
+  .cell .hours{
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+    font-weight:700;
+    color:var(--brass-bright);
+    line-height:1.1;
+  }
+  .cell .times{
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    color:var(--paper-dim);
+  }
+  .cell .pay{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--paper-dim);
+  }
+  .cell.work .pay{color:#c9bfa8;}
+  .cell .ot-line{
+    font-family:'JetBrains Mono',monospace;
+    font-size:8.5px;
+    color:var(--holiday);
+    line-height:1.2;
+    margin-top:1px;
+  }
+  .cell .plus{
+    font-size:16px;color:var(--paper-dim);opacity:.5;
+    align-self:center;margin:auto;
+  }
+
+  /* modal */
+  .overlay{
+    position:fixed;inset:0;background:rgba(10,13,16,0.7);
+    display:none;align-items:center;justify-content:center;
+    z-index:50;padding:16px;
+    backdrop-filter:blur(2px);
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    width:100%;max-width:380px;
+    padding:22px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.5);
+  }
+  .modal h3{
+    font-family:'Frank Ruhl Libre',serif;
+    font-size:19px;margin:0 0 4px;color:var(--paper);
+  }
+  .modal .modal-sub{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;color:var(--paper-dim);margin-bottom:16px;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;font-size:12px;color:var(--paper-dim);
+    margin-bottom:5px;font-family:'JetBrains Mono',monospace;
+  }
+  .field input[type=time],.field input[type=number],.field input[type=text]{
+    width:100%;padding:9px 10px;
+    background:var(--ink);border:1px solid var(--line);
+    border-radius:7px;color:var(--paper);
+    font-family:'JetBrains Mono',monospace;font-size:14px;
+    outline:none;
+  }
+  .field input:focus{border-color:var(--brass);}
+  .time-select-row{display:flex;align-items:center;gap:4px;}
+  .time-select{
+    flex:1;padding:9px 6px;text-align:center;
+    background:var(--ink);border:1px solid var(--line);
+    border-radius:7px;color:var(--paper);
+    font-family:'JetBrains Mono',monospace;font-size:14px;
+    outline:none;cursor:pointer;
+    -webkit-appearance:none;appearance:none;
+  }
+  .time-select:focus{border-color:var(--brass);}
+  .time-select option{background:var(--panel);color:var(--paper);}
+  .time-colon{color:var(--paper-dim);font-family:'JetBrains Mono',monospace;font-weight:700;}
+  .now-btn{
+    flex:0 0 auto;width:30px;height:30px;border-radius:50%;
+    background:var(--ink);border:1px solid var(--line);
+    color:var(--paper-dim);cursor:pointer;font-size:13px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .15s ease;padding:0;
+  }
+  .now-btn:hover{border-color:var(--brass);color:var(--brass-bright);}
+  .now-btn:active{transform:scale(0.92);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .check-row{
+    display:flex;align-items:center;gap:8px;
+    font-size:13px;color:var(--paper);cursor:pointer;
+    margin-bottom:16px;
+  }
+  .check-row input{width:16px;height:16px;accent-color:var(--brass-bright);}
+  .modal-actions{display:flex;gap:8px;margin-top:6px;}
+  .btn{
+    flex:1;padding:10px 12px;border-radius:8px;border:1px solid var(--line);
+    font-family:'Heebo',sans-serif;font-size:13.5px;font-weight:600;
+    cursor:pointer;transition:opacity .15s ease;
+  }
+  .btn:hover{opacity:.85;}
+  .btn-save{background:linear-gradient(160deg,var(--brass-bright),var(--brass));color:#211505;border:none;}
+  .btn-clear{background:transparent;color:var(--danger);border-color:rgba(192,96,74,0.4);}
+  .btn-cancel{background:transparent;color:var(--paper-dim);}
+
+  @media (max-width:520px){
+    .cell{min-height:54px;padding:4px 3px 3px;}
+    .cell .daynum{font-size:11px;}
+    .cell .hours{font-size:11px;}
+    .cell .times,.cell .pay,.cell .ot-line{display:none;}
+    .cell .badges{font-size:8px;}
+    .summary{grid-template-columns:repeat(2,1fr);}
+    .punch-btn{font-size:13px;padding:8px 0;}
+  }
+
+  footer{
+    text-align:center;
+    color:var(--paper-dim);
+    font-size:11px;
+    font-family:'JetBrains Mono',monospace;
+    margin-top:34px;
+    letter-spacing:0.4px;
+  }
+  .save-flag{
+    position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--brass-bright);color:#211505;padding:8px 18px;border-radius:100px;
+    font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:700;
+    opacity:0;transition:all .25s ease;pointer-events:none;z-index:60;
+    max-width:90vw;text-align:center;
+  }
+  .save-flag.error{background:var(--danger);color:#fff;}
+  .save-flag.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title-block">
+      <h1>לוח שעות</h1>
+      <div class="sub">נווה אילן · דוח נוכחות ושכר</div>
+    </div>
+    <div class="head-right">
+      <div class="year-switch">
+        <select id="yearSelect" class="year-select"></select>
+      </div>
+      <div class="gear-btn" id="syncBtn" title="לא נשמר — לחץ לניסיון חוזר" style="display:none;color:var(--danger);border-color:var(--danger);">⚠</div>
+      <div class="gear-btn" id="backupBtn" title="גיבוי / שחזור נתונים">💾</div>
+      <div class="gear-btn" id="gearBtn" title="הגדרות שכר">⚙</div>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="summary" id="summary"></div>
+  <div class="hint" id="holidayNote" style="margin:-14px 0 18px;color:var(--holiday);font-family:'JetBrains Mono',monospace;font-size:11px;"></div>
+
+  <div class="cal-head">
+    <h2 id="monthTitle"></h2>
+    <span class="hint">לחץ/י על יום כדי לערוך</span>
+  </div>
+
+  <div class="punch-bar">
+    <button class="punch-btn punch-in" id="punchInBtn">⏵ כניסה</button>
+    <div class="punch-time" id="punchTime"></div>
+    <button class="punch-btn punch-out" id="punchOutBtn">⏹ יציאה</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer id="footerNote"></footer>
+</div>
+
+<!-- day edit modal -->
+<div class="overlay" id="dayOverlay">
+  <div class="modal">
+    <h3 id="dayModalTitle">עריכת יום</h3>
+    <div class="modal-sub" id="dayModalSub"></div>
+    <label class="check-row"><input type="checkbox" id="inVacation"> יום חופש (ייחשב כיום עבודה, ללא שעות)</label>
+    <div class="row2" id="timeFieldsWrap">
+      <div class="field">
+        <label>שעת התחלה</label>
+        <div class="time-select-row">
+          <select id="inStartMinute" class="time-select"></select>
+          <span class="time-colon">:</span>
+          <select id="inStartHour" class="time-select"></select>
+          <button type="button" class="now-btn" id="nowStartBtn" title="הכנס שעה נוכחית">🕐</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>שעת סיום</label>
+        <div class="time-select-row">
+          <select id="inEndMinute" class="time-select"></select>
+          <span class="time-colon">:</span>
+          <select id="inEndHour" class="time-select"></select>
+          <button type="button" class="now-btn" id="nowEndBtn" title="הכנס שעה נוכחית">🕐</button>
+        </div>
+      </div>
+    </div>
+    <label class="check-row"><input type="checkbox" id="inNaveh"> עבדתי בנווה אילן ביום זה</label>
+    <div class="field" id="shabbatBadgeWrap" style="display:none;">
+      <div class="modal-sub" id="shabbatBadge" style="color:var(--brass-bright);margin-bottom:0;"></div>
+    </div>
+    <div class="field" id="holidayBadgeWrap" style="display:none;">
+      <div class="modal-sub" id="holidayBadge" style="color:var(--holiday);margin-bottom:0;"></div>
+    </div>
+    <div class="field" id="otPreviewWrap" style="display:none;">
+      <label>שעות נוספות ליום זה</label>
+      <div class="modal-sub" id="otPreview" style="margin-bottom:0;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-clear" id="btnClearDay">נקה יום</button>
+      <button class="btn btn-cancel" id="btnCancelDay">ביטול</button>
+      <button class="btn btn-save" id="btnSaveDay">שמירה</button>
+    </div>
+  </div>
+</div>
+
+<!-- backup / restore modal -->
+<div class="overlay" id="backupOverlay">
+  <div class="modal" style="max-width:440px;">
+    <h3>גיבוי ושחזור</h3>
+    <div class="modal-sub">אם השמירה האוטומטית לא עובדת, אפשר לגבות את הנתונים כטקסט ולשחזר אותם מאוחר יותר — גם במכשיר אחר.</div>
+    <div class="field">
+      <label>גיבוי — העתק/י את הטקסט הבא ושמרו אותו (לדוגמה בקובץ Notes)</label>
+      <textarea id="backupOut" readonly style="width:100%;height:90px;background:var(--ink);border:1px solid var(--line);border-radius:7px;color:var(--paper-dim);font-family:'JetBrains Mono',monospace;font-size:10px;padding:8px;resize:vertical;"></textarea>
+      <div class="modal-actions" style="margin-top:8px;">
+        <button class="btn btn-save" id="btnCopyBackup" style="flex:1;">העתקה ללוח</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>שחזור — הדביקו כאן טקסט גיבוי ולחצו שחזור</label>
+      <textarea id="backupIn" placeholder="הדביקו כאן..." style="width:100%;height:90px;background:var(--ink);border:1px solid var(--line);border-radius:7px;color:var(--paper);font-family:'JetBrains Mono',monospace;font-size:10px;padding:8px;resize:vertical;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="btnCloseBackup">סגירה</button>
+      <button class="btn btn-save" id="btnRestoreBackup">שחזור</button>
+    </div>
+  </div>
+</div>
+
+<!-- settings modal -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <h3>הגדרות שכר</h3>
+    <div class="modal-sub">השינויים יחושבו מחדש על כל החודשים</div>
+    <div class="field">
+      <label>שכר בסיס למשמרת (₪)</label>
+      <input type="number" id="setBase" step="1">
+    </div>
+    <div class="field">
+      <label>נסיעות — חופשי חודשי (₪)</label>
+      <input type="number" id="setTravel" step="1">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>נסיעות נווה אילן — תעריף (₪)</label>
+        <input type="number" id="setNiTravelRate" step="0.5">
+      </div>
+      <div class="field">
+        <label>נסיעות ביום</label>
+        <input type="number" id="setNiTravelTrips" step="1">
+      </div>
+    </div>
+    <div class="field">
+      <label>נסיעות נווה אילן — מקדם עדכון</label>
+      <input type="number" id="setNiTravelFactor" step="0.01">
+    </div>
+    <div class="field">
+      <label>תעריף שעה נוספת בסיסי (₪ לשעה)</label>
+      <input type="number" id="setOvertimeRate" step="0.5">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>סף שעות ליום לשעות נוספות</label>
+        <input type="number" id="setOtThreshold" step="0.5">
+      </div>
+      <div class="field">
+        <label>אחוז תשלום מעל הסף (%)</label>
+        <input type="number" id="setOtPct" step="1">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>תשלום ביום חג (% משכר הבסיס)</label>
+        <input type="number" id="setHolidayPct" step="1">
+      </div>
+      <div class="field">
+        <label>תשלום בשישי/שבת (% משכר הבסיס)</label>
+        <input type="number" id="setShabbatPct" step="1">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="btnCancelSettings">ביטול</button>
+      <button class="btn btn-save" id="btnSaveSettings">שמירה</button>
+    </div>
+  </div>
+</div>
+
+<div class="save-flag" id="saveFlag">נשמר ✓</div>
+
+<script>
+const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+const wdNames = ["א","ב","ג","ד","ה","ו","ש"];
+
+// ---- base data extracted from the original 2026 report: { "m-d": {s,e,sh} } ----
+const baseDataByYear = { 2026: {
+"1-1":{s:"13:54",e:"22:23",sh:false},"1-2":{s:"14:01",e:"21:14",sh:true},
+"1-4":{s:"15:53",e:"22:31",sh:false},"1-5":{s:"14:04",e:"22:54",sh:false},
+"1-6":{s:"16:00",e:"22:52",sh:false},"1-7":{s:"11:08",e:"18:56",sh:false},
+"1-8":{s:"4:57",e:"13:05",sh:false},"1-13":{s:"14:10",e:"23:01",sh:false},
+"1-14":{s:"14:53",e:"22:17",sh:false},"1-15":{s:"10:16",e:"17:02",sh:false},
+"1-18":{s:"15:45",e:"23:30",sh:false},"1-19":{s:"15:51",e:"22:42",sh:false},
+"1-20":{s:"10:26",e:"17:00",sh:false},"1-21":{s:"14:15",e:"22:53",sh:false},
+"1-22":{s:"10:23",e:"16:55",sh:false},"1-25":{s:"14:00",e:"22:23",sh:false},
+"1-26":{s:"15:58",e:"22:44",sh:false},"1-27":{s:"14:00",e:"22:27",sh:false},
+"1-28":{s:"13:48",e:"22:29",sh:false},"1-29":{s:"10:52",e:"19:00",sh:false},
+"1-30":{s:"11:52",e:"19:08",sh:true},
+
+"2-1":{s:"13:53",e:"22:53",sh:false},"2-2":{s:"13:56",e:"22:27",sh:false},
+"2-3":{s:"13:55",e:"22:08",sh:false},"2-4":{s:"16:00",e:"19:28",sh:false},
+"2-5":{s:"10:26",e:"17:00",sh:false},"2-6":{s:"12:02",e:"19:59",sh:true},
+"2-8":{s:"13:56",e:"22:03",sh:false},"2-9":{s:"13:59",e:"22:12",sh:false},
+"2-10":{s:"14:00",e:"22:07",sh:false},"2-11":{s:"13:48",e:"22:50",sh:false},
+"2-12":{s:"10:54",e:"18:57",sh:false},"2-16":{s:"14:07",e:"22:19",sh:false},
+"2-17":{s:"12:55",e:"20:06",sh:false},"2-18":{s:"11:00",e:"18:53",sh:false},
+"2-19":{s:"14:46",e:"17:37",sh:false},"2-22":{s:"10:00",e:"18:30",sh:false},
+"2-23":{s:"15:00",e:"22:39",sh:false},"2-24":{s:"13:52",e:"22:22",sh:false},
+"2-25":{s:"14:52",e:"22:45",sh:false},"2-26":{s:"13:57",e:"22:02",sh:false},
+"2-28":{s:"14:00",e:"22:30",sh:true},
+
+"3-1":{s:"15:48",e:"21:32",sh:false},"3-2":{s:"14:45",e:"20:00",sh:false},
+"3-3":{s:"14:00",e:"19:54",sh:false},"3-4":{s:"17:00",e:"20:50",sh:false},
+"3-5":{s:"15:44",e:"21:26",sh:false},"3-6":{s:"10:00",e:"15:30",sh:true},
+"3-7":{s:"9:49",e:"15:00",sh:true},"3-9":{s:"15:50",e:"21:14",sh:false},
+"3-10":{s:"15:52",e:"21:39",sh:false},"3-11":{s:"13:00",e:"19:34",sh:false},
+"3-13":{s:"0:00",e:"6:00",sh:false},"3-14":{s:"0:00",e:"6:42",sh:true},
+"3-15":{s:"9:20",e:"15:58",sh:false},"3-17":{s:"13:18",e:"19:48",sh:false},
+"3-18":{s:"9:52",e:"15:15",sh:false},"3-19":{s:"13:55",e:"20:27",sh:false},
+"3-21":{s:"0:00",e:"7:02",sh:true},"3-22":{s:"9:51",e:"16:00",sh:false},
+"3-23":{s:"0:00",e:"6:00",sh:false},"3-24":{s:"16:54",e:"21:45",sh:false},
+"3-25":{s:"9:56",e:"15:40",sh:false},"3-26":{s:"14:05",e:"20:09",sh:false},
+"3-30":{s:"15:44",e:"20:00",sh:false},"3-31":{s:"9:26",e:"15:52",sh:false},
+
+"4-1":{s:"12:49",e:"21:45",sh:false},"4-5":{s:"15:08",e:"20:19",sh:false},
+"4-6":{s:"9:48",e:"16:00",sh:false},"4-9":{s:"13:55",e:"20:36",sh:false},
+"4-10":{s:"11:55",e:"19:19",sh:true},"4-12":{s:"4:55",e:"13:02",sh:false},
+"4-13":{s:"12:05",e:"18:24",sh:false},"4-14":{s:"14:56",e:"22:18",sh:false},
+"4-15":{s:"13:58",e:"22:48",sh:false},"4-16":{s:"14:10",e:"22:30",sh:false},
+"4-26":{s:"13:50",e:"22:28",sh:false},"4-28":{s:"14:00",e:"22:28",sh:false},
+"4-29":{s:"13:55",e:"22:34",sh:false},"4-30":{s:"15:07",e:"21:26",sh:false},
+
+"5-3":{s:"14:44",e:"22:28",sh:false},"5-4":{s:"10:26",e:"16:55",sh:false},
+"5-5":{s:"13:59",e:"22:39",sh:false},"5-6":{s:"14:06",e:"22:46",sh:false},
+"5-7":{s:"14:06",e:"21:16",sh:false},"5-10":{s:"15:02",e:"22:25",sh:false},
+"5-11":{s:"16:01",e:"23:22",sh:false},"5-12":{s:"14:00",e:"22:26",sh:false},
+"5-13":{s:"13:55",e:"22:23",sh:false},"5-14":{s:"13:50",e:"21:55",sh:false},
+"5-17":{s:"11:00",e:"19:00",sh:false},"5-18":{s:"15:44",e:"23:42",sh:false},
+"5-19":{s:"14:50",e:"22:49",sh:false},"5-20":{s:"15:58",e:"22:02",sh:false},
+"5-21":{s:"14:04",e:"22:16",sh:false},
+
+"6-3":{s:"15:00",e:"22:53",sh:false},"6-4":{s:"15:54",e:"23:03",sh:false},
+"6-5":{s:"14:09",e:"21:07",sh:true},"6-6":{s:"14:49",e:"21:17",sh:true},
+"6-8":{s:"15:56",e:"21:20",sh:false},"6-9":{s:"16:08",e:"22:16",sh:false},
+"6-10":{s:"10:35",e:"16:58",sh:false},"6-11":{s:"14:52",e:"22:41",sh:false},
+"6-14":{s:"11:00",e:"16:47",sh:false},"6-15":{s:"16:08",e:"22:00",sh:false},
+"6-16":{s:"14:00",e:"22:46",sh:false},"6-17":{s:"14:03",e:"22:16",sh:false},
+"6-19":{s:"15:53",e:"19:42",sh:true},"6-21":{s:"15:58",e:"22:35",sh:false},
+"6-22":{s:"14:53",e:"22:49",sh:false},"6-23":{s:"13:57",e:"22:04",sh:false},
+"6-24":{s:"10:50",e:"19:00",sh:false},"6-25":{s:"15:00",e:"21:29",sh:false},
+"6-28":{s:"15:50",e:"22:52",sh:false},"6-29":{s:"15:55",e:"23:52",sh:false},
+"6-30":{s:"15:50",e:"22:30",sh:false},
+
+"7-1":{s:"14:00",e:"22:14",sh:false},"7-2":{s:"14:50",e:"22:12",sh:false},
+"7-5":{s:"13:53",e:"22:30",sh:false},"7-6":{s:"13:54",e:"22:19",sh:false},
+"7-7":{s:"13:54",e:"22:35",sh:false},"7-8":{s:"15:50",e:"21:58",sh:false},
+"7-9":{s:"13:49",e:"22:13",sh:false},"7-19":{s:"15:00",e:"22:33",sh:false},
+"7-20":{s:"10:20",e:"16:58",sh:false},"7-21":{s:"13:56",e:"22:07",sh:false},
+"7-22":{s:"14:13",e:"21:51",sh:false},"7-23":{s:"13:55",e:"21:53",sh:false},
+"7-26":{s:"13:54",e:"22:14",sh:false},"7-27":{s:"13:56",e:"22:20",sh:false},
+"7-28":{s:"13:51",e:"22:43",sh:false},"7-29":{s:"10:20",e:"16:53",sh:false},
+"7-30":{s:"14:08",e:"21:53",sh:false},
+
+"8-2":{s:"5:05",e:"12:54",sh:false},"8-3":{s:"15:57",e:"23:20",sh:false},
+"8-4":{s:"14:50",e:"23:00",sh:false},"8-5":{s:"10:48",e:"16:55",sh:false},
+"8-6":{s:"14:00",e:"22:30",sh:false},"8-11":{s:"14:05",e:"22:13",sh:false},
+"8-12":{s:"14:57",e:"22:46",sh:false},
+
+"12-1":{s:"15:54",e:"22:54",sh:false},"12-2":{s:"15:52",e:"23:53",sh:false},
+"12-3":{s:"10:30",e:"16:58",sh:false},"12-4":{s:"15:55",e:"23:50",sh:true},
+"12-7":{s:"16:04",e:"22:39",sh:false},"12-8":{s:"10:48",e:"19:00",sh:false},
+"12-9":{s:"16:00",e:"22:41",sh:false},"12-10":{s:"13:50",e:"22:46",sh:false},
+"12-11":{s:"10:50",e:"18:59",sh:true},"12-14":{s:"13:52",e:"22:35",sh:false},
+"12-15":{s:"16:22",e:"23:07",sh:false},"12-16":{s:"15:56",e:"23:23",sh:false},
+"12-21":{s:"4:48",e:"13:01",sh:false},"12-22":{s:"10:32",e:"16:58",sh:false},
+"12-23":{s:"15:51",e:"22:13",sh:false},"12-25":{s:"4:49",e:"12:59",sh:false},
+"12-26":{s:"13:00",e:"20:05",sh:true}
+} };
+
+const defaultSettings = { base:315, travel:225, niTravelRate:57, niTravelTrips:2, niTravelFactor:1.15, overtimeRate:71, otThreshold:10, otPct:150, holidayPct:150, shabbatPct:150 };
+
+const YEARS = [2026, 2027, 2028, 2029, 2030];
+const today = new Date();
+let currentYear = YEARS.includes(today.getFullYear()) ? today.getFullYear() : YEARS[0];
+
+// Official Israeli statutory holidays (the 9 chagim that trigger holiday overtime pay) per year,
+// pulled from the Hebrew calendar — key "month-day" (Gregorian, Israel dates).
+const HOLIDAYS_BY_YEAR = {
+  2026: {
+    "4-2":  "פסח - יום א'",
+    "4-8":  "פסח - יום ז'",
+    "4-21": "יום העצמאות",
+    "5-22": "שבועות",
+    "9-12": "ראש השנה - יום א'",
+    "9-13": "ראש השנה - יום ב'",
+    "9-21": "יום כיפור",
+    "9-26": "סוכות - יום א'",
+    "10-3": "שמחת תורה"
+  },
+  2027: {
+    "4-22": "פסח - יום א'",
+    "4-28": "פסח - יום ז'",
+    "5-12": "יום העצמאות",
+    "6-11": "שבועות",
+    "10-2": "ראש השנה - יום א'",
+    "10-3": "ראש השנה - יום ב'",
+    "10-11":"יום כיפור",
+    "10-16":"סוכות - יום א'",
+    "10-23":"שמחת תורה"
+  },
+  2028: {
+    "4-11": "פסח - יום א'",
+    "4-17": "פסח - יום ז'",
+    "5-2":  "יום העצמאות",
+    "5-31": "שבועות",
+    "9-21": "ראש השנה - יום א'",
+    "9-22": "ראש השנה - יום ב'",
+    "9-30": "יום כיפור",
+    "10-5": "סוכות - יום א'",
+    "10-12":"שמחת תורה"
+  },
+  2029: {
+    "3-31": "פסח - יום א'",
+    "4-6":  "פסח - יום ז'",
+    "4-19": "יום העצמאות",
+    "5-20": "שבועות",
+    "9-10": "ראש השנה - יום א'",
+    "9-11": "ראש השנה - יום ב'",
+    "9-19": "יום כיפור",
+    "9-24": "סוכות - יום א'",
+    "10-1": "שמחת תורה"
+  },
+  2030: {
+    "4-18": "פסח - יום א'",
+    "4-24": "פסח - יום ז'",
+    "5-8":  "יום העצמאות",
+    "6-7":  "שבועות",
+    "9-28": "ראש השנה - יום א'",
+    "9-29": "ראש השנה - יום ב'",
+    "10-7": "יום כיפור",
+    "10-12":"סוכות - יום א'",
+    "10-19":"שמחת תורה"
+  }
+};
+function holidayName(m,day){ return (HOLIDAYS_BY_YEAR[currentYear]||{})[m+"-"+day] || null; }
+function isHoliday(m,day){ return !!holidayName(m,day); }
+function isShabbatDay(m,day){ const dow = new Date(currentYear,m-1,day).getDay(); return dow===5 || dow===6; }
+
+let overrides = {};   // "m-d" -> {s,e,sh} or {removed:true}
+let settings = {...defaultSettings};
+let current = today.getMonth() + 1;
+let editingKey = null;
+let endManuallyEdited = false;
+let storageReady = false;
+let syncFailed = false;
+
+function setSyncStatus(failed){
+  syncFailed = failed;
+  const btn = document.getElementById('syncBtn');
+  if(btn) btn.style.display = failed ? 'flex' : 'none';
+}
+
+function flag(msg, isError){
+  const el = document.getElementById('saveFlag');
+  el.textContent = msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), isError ? 3200 : 1400);
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+async function withRetry(fn, attempts){
+  let lastErr;
+  for(let i=0; i<attempts; i++){
+    try{ return await fn(); }
+    catch(e){ lastErr = e; if(i<attempts-1) await sleep(400*(i+1)); }
+  }
+  throw lastErr;
+}
+
+// window.storage only exists when this file is rendered inside Claude's own artifact viewer.
+// When the file is downloaded and opened directly in a browser (e.g. on a phone), that API
+// doesn't exist at all — so we fall back to the browser's own localStorage in that case.
+const hasWindowStorage = typeof window.storage !== 'undefined' && typeof window.storage.get === 'function';
+
+async function storageGet(key){
+  if(hasWindowStorage) return window.storage.get(key, false);
+  const val = localStorage.getItem(key);
+  return val === null ? null : { key, value: val, shared: false };
+}
+async function storageSet(key, value){
+  if(hasWindowStorage) return window.storage.set(key, value, false);
+  localStorage.setItem(key, value);
+  return { key, value, shared: false };
+}
+
+// Migrates override keys saved before multi-year support ("m-d") to the new "year-m-d" format,
+// assuming those old entries belonged to 2026 (the only year that existed then).
+function migrateOverrideKeys(obj){
+  const migrated = {};
+  Object.keys(obj).forEach(key=>{
+    const isOldFormat = /^\d{1,2}-\d{1,2}$/.test(key);
+    migrated[isOldFormat ? ("2026-"+key) : key] = obj[key];
+  });
+  return migrated;
+}
+
+async function loadState(){
+  try{
+    const ov = await storageGet('timesheet-overrides');
+    if(ov && ov.value) overrides = migrateOverrideKeys(JSON.parse(ov.value));
+  }catch(e){ /* no overrides yet */ }
+  try{
+    const st = await storageGet('timesheet-settings');
+    if(st && st.value) settings = {...defaultSettings, ...JSON.parse(st.value)};
+  }catch(e){ /* no custom settings yet */ }
+  storageReady = true;
+  render();
+}
+
+async function persistOverrides(){
+  try{
+    await withRetry(() => storageSet('timesheet-overrides', JSON.stringify(overrides)), 3);
+    setSyncStatus(false);
+    return true;
+  }catch(e){
+    console.error('save failed', e);
+    setSyncStatus(true);
+    flag('⚠ השמירה נכשלה — השינוי מוצג אך לא נשמר', true);
+    return false;
+  }
+}
+async function persistSettings(){
+  try{
+    await withRetry(() => storageSet('timesheet-settings', JSON.stringify(settings)), 3);
+    setSyncStatus(false);
+    return true;
+  }catch(e){
+    console.error('save failed', e);
+    setSyncStatus(true);
+    flag('⚠ השמירה נכשלה — השינוי מוצג אך לא נשמר', true);
+    return false;
+  }
+}
+
+function overrideKey(m,day){ return currentYear+"-"+m+"-"+day; }
+function getEntry(m,day){
+  const key = overrideKey(m,day);
+  if(overrides.hasOwnProperty(key)){
+    return overrides[key].removed ? null : overrides[key];
+  }
+  const yearData = baseDataByYear[currentYear];
+  return (yearData && yearData[m+"-"+day]) || null;
+}
+
+function parseHM(t){
+  const [h,mi] = t.split(':').map(Number);
+  return h*60+mi;
+}
+function computeHours(s,e){
+  let start = parseHM(s), end = parseHM(e);
+  let diff = end - start;
+  if(diff <= 0) diff += 24*60;
+  const h = Math.floor(diff/60), mi = diff%60;
+  return {label: h+":"+String(mi).padStart(2,'0'), minutes: diff};
+}
+
+// Extra hours beyond the daily threshold (default 10h) pay at otPct (default 150%) of the hourly overtime rate
+function dailyOvertimePay(minutes){
+  const hours = minutes/60;
+  const otHours = Math.max(hours - settings.otThreshold, 0);
+  return otHours * settings.overtimeRate * (settings.otPct/100);
+}
+// Holiday days pay holidayPct (default 150%) of the base shift pay, instead of the regular base
+function holidayBasePay(){
+  return settings.base * (settings.holidayPct/100);
+}
+// Friday/Saturday days pay shabbatPct (default 150%) of the base shift pay, instead of the regular base
+function shabbatBasePay(){
+  return settings.base * (settings.shabbatPct/100);
+}
+// A holiday and a Friday/Saturday take the higher of the two multipliers rather than stacking
+function effectiveBasePay(m,day){
+  const hol = isHoliday(m,day), sh = isShabbatDay(m,day);
+  if(hol && sh) return Math.max(holidayBasePay(), shabbatBasePay());
+  if(hol) return holidayBasePay();
+  if(sh) return shabbatBasePay();
+  return settings.base;
+}
+function dayPay(info, m, day){
+  if(info.vac) return settings.base; // vacation day: flat base pay, no multipliers or overtime
+  const {minutes} = computeHours(info.s, info.e);
+  let pay = effectiveBasePay(m, day);
+  pay += dailyOvertimePay(minutes);
+  return pay;
+}
+
+function monthEntries(m){
+  const daysInMonth = new Date(currentYear, m, 0).getDate();
+  const list = [];
+  for(let day=1; day<=daysInMonth; day++){
+    const e = getEntry(m, day);
+    if(e) list.push({day, ...e});
+  }
+  return list;
+}
+
+function isNavehIlan(info){ return info.ni === true; } // default false when not explicitly set
+
+function niTravelPerDay(){
+  return settings.niTravelRate * settings.niTravelTrips * settings.niTravelFactor;
+}
+
+function monthSummary(m){
+  const entries = monthEntries(m);
+  let gross = 0, totalMin = 0, shabbatCount = 0, holidayExtra = 0, shabbatExtra = 0, dailyOtExtra = 0, navehIlanDays = 0, vacationDays = 0, vacationPay = 0;
+  entries.forEach(en=>{
+    gross += dayPay(en, m, en.day);
+    if(en.vac){
+      vacationDays++;
+      vacationPay += settings.base;
+      if(isNavehIlan(en)) navehIlanDays++;
+      return;
+    }
+    const {minutes} = computeHours(en.s, en.e);
+    totalMin += minutes;
+    if(isShabbatDay(m,en.day)) shabbatCount++;
+    const extra = effectiveBasePay(m,en.day) - settings.base;
+    if(extra>0){
+      if(isHoliday(m,en.day)) holidayExtra += extra;
+      else shabbatExtra += extra;
+    }
+    dailyOtExtra += dailyOvertimePay(minutes);
+    if(isNavehIlan(en)) navehIlanDays++;
+  });
+  const travel = entries.length > 0 ? settings.travel : 0;
+  const niTravel = navehIlanDays * niTravelPerDay();
+  const hLabel = Math.floor(totalMin/60) + ":" + String(totalMin%60).padStart(2,'0');
+  return { gross: gross + travel + niTravel, workBase: gross, travel, niTravel, hoursLabel: hLabel, workdays: entries.length, shabbatCount, holidayExtra, shabbatExtra, dailyOtExtra, navehIlanDays, vacationDays, vacationPay };
+}
+
+function buildExtraNote(s){
+  const parts = [];
+  if(s.holidayExtra>0) parts.push(`⭐ ₪${Math.round(s.holidayExtra).toLocaleString()} תוספת ימי חג`);
+  if(s.shabbatExtra>0) parts.push(`🔥 ₪${Math.round(s.shabbatExtra).toLocaleString()} תוספת שישי/שבת`);
+  if(s.dailyOtExtra>0) parts.push(`⏱ ₪${Math.round(s.dailyOtExtra).toLocaleString()} שעות נוספות מעל ${settings.otThreshold} ש' ביום`);
+  if(s.niTravel>0) parts.push(`📍 ₪${Math.round(s.niTravel).toLocaleString()} נסיעות נווה אילן (${s.navehIlanDays} ימים × ₪${niTravelPerDay().toFixed(2)})`);
+  if(s.vacationDays>0) parts.push(`🏖 ${s.vacationDays} ימי חופש (₪${Math.round(s.vacationPay).toLocaleString()})`);
+  return parts.join(' · ');
+}
+
+function buildTabs(){
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = '';
+  for(let m=1;m<=12;m++){
+    const s = monthSummary(m);
+    const btn = document.createElement('div');
+    btn.className = 'tab' + (m===current?' active':'');
+    btn.innerHTML = monthNames[m-1].slice(0,3) + (s.workdays>0 ? `<span class="dot">₪${Math.round(s.gross).toLocaleString()}</span>` : `<span class="dot">—</span>`);
+    btn.onclick = () => { current = m; render(); };
+    tabs.appendChild(btn);
+  }
+}
+
+function render(){
+  document.getElementById('yearSelect').value = currentYear;
+
+  buildTabs();
+  const s = monthSummary(current);
+
+  const summary = document.getElementById('summary');
+  summary.innerHTML = `
+    <div class="stat"><span class="num">₪${Math.round(s.gross).toLocaleString()}</span><span class="lbl">ברוטו (כולל נסיעות)</span></div>
+    <div class="stat"><span class="num">${s.hoursLabel}</span><span class="lbl">סה"כ שעות</span></div>
+    <div class="stat"><span class="num">${s.workdays}</span><span class="lbl">ימי עבודה</span></div>
+    <div class="stat"><span class="num">${s.navehIlanDays}</span><span class="lbl">📍 ימי נווה אילן</span></div>
+    <div class="stat"><span class="num">₪${s.travel.toLocaleString()}</span><span class="lbl">נסיעות (חופשי חודשי)</span></div>
+    <div class="stat"><span class="num">₪${Math.round(s.niTravel).toLocaleString()}</span><span class="lbl">📍 נסיעות נווה אילן</span></div>
+  `;
+  document.getElementById('holidayNote').textContent = buildExtraNote(s);
+
+  document.getElementById('monthTitle').textContent = monthNames[current-1] + " " + currentYear;
+  document.getElementById('footerNote').textContent =
+    `בסיס למשמרת: ₪${settings.base} · נסיעות (חופשי חודשי): ₪${settings.travel} · נסיעות נווה אילן: ₪${settings.niTravelRate}×${settings.niTravelTrips}×${settings.niTravelFactor} = ₪${niTravelPerDay().toFixed(2)} ליום 📍 · חג: ${settings.holidayPct}% משכר הבסיס · שישי/שבת: ${settings.shabbatPct}% משכר הבסיס · שעות נוספות מעל ${settings.otThreshold} שעות ביום: ₪${settings.overtimeRate} × ${settings.otPct}% · 🔥 = שישי/שבת · ⭐ = חג — מזוהים אוטומטית · לחיצה על יום פותחת עריכה`;
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  wdNames.forEach(w => {
+    const el = document.createElement('div');
+    el.className = 'wd';
+    el.textContent = w;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(currentYear, current-1, 1).getDay();
+  const daysInMonth = new Date(currentYear, current, 0).getDate();
+
+  for(let i=0;i<firstDay;i++){
+    const blank = document.createElement('div');
+    blank.className = 'cell blank';
+    grid.appendChild(blank);
+  }
+
+  for(let day=1; day<=daysInMonth; day++){
+    const info = getEntry(current, day);
+    const hol = isHoliday(current, day);
+    const cell = document.createElement('div');
+    cell.onclick = () => openDayModal(current, day);
+
+    if(!info){
+      cell.className = 'cell off';
+      const offBadges = (isShabbatDay(current,day) ? '<span class="flame">🔥</span>' : '') + (hol ? '<span class="star">⭐</span>' : '');
+      cell.innerHTML = `
+        <div class="daynum"><span>${day}</span><span class="badges">${offBadges}</span></div>
+        <div class="plus">+</div>
+      `;
+      if(hol) cell.title = holidayName(current,day);
+    } else if(info.vac){
+      const pay = dayPay(info, current, day);
+      const ni = isNavehIlan(info);
+      cell.className = 'cell vacation';
+      cell.innerHTML = `
+        <div class="daynum"><span>${day}</span><span class="badges">${ni ? '<span class="pin">📍</span>' : ''}🏖</span></div>
+        <div class="hours">חופש</div>
+        <div class="pay">₪${Math.round(pay)}</div>
+      `;
+    } else {
+      const {label, minutes} = computeHours(info.s, info.e);
+      const pay = dayPay(info, current, day);
+      const ni = isNavehIlan(info);
+      const otAmount = dailyOvertimePay(minutes);
+      const hasOt = otAmount > 0;
+      const basePart = effectiveBasePay(current, day);
+      cell.className = 'cell ' + (hol ? 'holiday' : (isShabbatDay(current,day) ? 'shabbat' : 'work'));
+      const badges = (ni ? '<span class="pin">📍</span>' : '') + (isShabbatDay(current,day) ? '<span class="flame">🔥</span>' : '') + (hol ? '<span class="star">⭐</span>' : '') + (hasOt ? '<span class="pin">⏱</span>' : '');
+      if(hol) cell.title = holidayName(current,day);
+      cell.innerHTML = `
+        <div class="daynum"><span>${day}</span><span class="badges">${badges}</span></div>
+        <div class="hours">${label}</div>
+        <div class="times">${info.s}–${info.e}</div>
+        <div class="pay">₪${Math.round(pay)}${hol ? ' <span class="ot">חג</span>' : ''}${hasOt ? ` <span class="ot">+₪${Math.round(otAmount)}</span>` : ''}</div>
+      `;
+    }
+    grid.appendChild(cell);
+  }
+}
+
+// ---- day modal ----
+let editingMonth = null, editingDay = null;
+
+function populateTimeSelects(){
+  const hourOpts = Array.from({length:24}, (_,h)=>`<option value="${h}">${String(h).padStart(2,'0')}</option>`).join('');
+  const minOpts = Array.from({length:60}, (_,mi)=>`<option value="${mi}">${String(mi).padStart(2,'0')}</option>`).join('');
+  ['inStartHour','inEndHour'].forEach(id=>{ document.getElementById(id).innerHTML = hourOpts; });
+  ['inStartMinute','inEndMinute'].forEach(id=>{ document.getElementById(id).innerHTML = minOpts; });
+}
+function setTimeSelects(hourId, minId, timeStr){
+  const [h, mi] = timeStr.split(':').map(Number);
+  document.getElementById(hourId).value = h;
+  document.getElementById(minId).value = mi;
+}
+function getTimeFromSelects(hourId, minId){
+  const h = document.getElementById(hourId).value;
+  const mi = String(document.getElementById(minId).value).padStart(2,'0');
+  return `${h}:${mi}`;
+}
+function getStartTime(){ return getTimeFromSelects('inStartHour','inStartMinute'); }
+function getEndTime(){ return getTimeFromSelects('inEndHour','inEndMinute'); }
+// Adds hours to a time string but caps the result at midnight (24:00 → "0:00") instead of
+// wrapping into the early hours of the next day.
+function shiftTimeByHours(timeStr, hoursToAdd){
+  const [h, mi] = timeStr.split(':').map(Number);
+  let total = h*60 + mi + hoursToAdd*60;
+  if(total > 24*60) total = 24*60;
+  if(total < 0) total = 0;
+  const nh = Math.floor(total/60) % 24, nm = total%60;
+  return `${nh}:${String(nm).padStart(2,'0')}`;
+}
+
+function openDayModal(m, day){
+  editingKey = overrideKey(m, day);
+  editingMonth = m; editingDay = day;
+  const info = getEntry(m, day);
+  document.getElementById('dayModalTitle').textContent = `עריכת ${day} ב${monthNames[m-1]}`;
+  const dow = new Date(currentYear, m-1, day).getDay();
+  document.getElementById('dayModalSub').textContent = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"][dow];
+  setTimeSelects('inStartHour','inStartMinute', (info && info.s) ? info.s : '14:00');
+  setTimeSelects('inEndHour','inEndMinute', (info && info.e) ? info.e : '22:00');
+  endManuallyEdited = false;
+  document.getElementById('inNaveh').checked = info ? (info.ni === true) : false;
+  document.getElementById('inVacation').checked = info ? !!info.vac : false;
+  applyVacationUI();
+
+  const shabbatWrap = document.getElementById('shabbatBadgeWrap');
+  if(isShabbatDay(m, day)){
+    shabbatWrap.style.display = 'block';
+    document.getElementById('shabbatBadge').textContent = `🔥 זוהה אוטומטית כיום שישי/שבת — התשלום יהיה ${settings.shabbatPct}% משכר הבסיס`;
+  } else {
+    shabbatWrap.style.display = 'none';
+  }
+
+  const hName = holidayName(m, day);
+  const badgeWrap = document.getElementById('holidayBadgeWrap');
+  if(hName){
+    badgeWrap.style.display = 'block';
+    document.getElementById('holidayBadge').textContent = `⭐ זוהה אוטומטית כיום חג: ${hName} — התשלום יהיה ${settings.holidayPct}% משכר הבסיס`;
+  } else {
+    badgeWrap.style.display = 'none';
+  }
+
+  document.getElementById('dayOverlay').classList.add('show');
+  updateOtPreview();
+}
+
+function applyVacationUI(){
+  const isVac = document.getElementById('inVacation').checked;
+  document.getElementById('timeFieldsWrap').style.display = isVac ? 'none' : 'grid';
+  if(isVac) document.getElementById('otPreviewWrap').style.display = 'none';
+}
+document.getElementById('inVacation').addEventListener('change', () => { applyVacationUI(); updateOtPreview(); });
+
+function updateOtPreview(){
+  const wrap = document.getElementById('otPreviewWrap');
+  if(document.getElementById('inVacation').checked){ wrap.style.display = 'none'; return; }
+  const s = getStartTime();
+  const e = getEndTime();
+  const {minutes, label} = computeHours(s, e);
+  const otPay = dailyOvertimePay(minutes);
+  if(otPay<=0){ wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  document.getElementById('otPreview').textContent =
+    `${label} שעות עבודה, מעל ${settings.otThreshold} ש' → תוספת ₪${Math.round(otPay)} (${settings.otPct}% מהתעריף)`;
+}
+// If the selected end time is earlier-in-day than start (which would normally mean "next day"),
+// clamp it to exactly midnight (0:00) instead — the exit time can never go past midnight.
+function clampEndToMidnight(){
+  const [sh, smi] = getStartTime().split(':').map(Number);
+  const [eh, emi] = getEndTime().split(':').map(Number);
+  const startMin = sh*60 + smi, endMin = eh*60 + emi;
+  const isMidnight = (eh === 0 && emi === 0);
+  if(endMin < startMin && !isMidnight){
+    setTimeSelects('inEndHour','inEndMinute', '0:00');
+  }
+}
+function onStartTimeChange(){
+  if(!endManuallyEdited){
+    setTimeSelects('inEndHour','inEndMinute', shiftTimeByHours(getStartTime(), 10));
+  }
+  clampEndToMidnight();
+  updateOtPreview();
+}
+['inStartHour','inStartMinute'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', onStartTimeChange);
+});
+['inEndHour','inEndMinute'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', () => {
+    endManuallyEdited = true;
+    clampEndToMidnight();
+    updateOtPreview();
+  });
+});
+
+function nowTimeString(){
+  const now = new Date();
+  return `${now.getHours()}:${now.getMinutes()}`;
+}
+document.getElementById('nowStartBtn').onclick = () => {
+  setTimeSelects('inStartHour','inStartMinute', nowTimeString());
+  onStartTimeChange();
+};
+document.getElementById('nowEndBtn').onclick = () => {
+  setTimeSelects('inEndHour','inEndMinute', nowTimeString());
+  endManuallyEdited = true;
+  clampEndToMidnight();
+  updateOtPreview();
+};
+function closeDayModal(){
+  document.getElementById('dayOverlay').classList.remove('show');
+  editingKey = null;
+}
+document.getElementById('btnCancelDay').onclick = closeDayModal;
+document.getElementById('dayOverlay').addEventListener('click', (e)=>{ if(e.target.id==='dayOverlay') closeDayModal(); });
+
+document.getElementById('btnSaveDay').onclick = async () => {
+  const isVac = document.getElementById('inVacation').checked;
+  const ni = document.getElementById('inNaveh').checked;
+  if(isVac){
+    overrides[editingKey] = { vac: true, ni };
+  } else {
+    clampEndToMidnight();
+    const s = getStartTime();
+    const e = getEndTime();
+    overrides[editingKey] = { s, e, ni };
+  }
+  const ok = await persistOverrides();
+  closeDayModal();
+  render();
+  if(ok) flag('נשמר ✓');
+};
+document.getElementById('btnClearDay').onclick = async () => {
+  overrides[editingKey] = { removed: true };
+  const ok = await persistOverrides();
+  closeDayModal();
+  render();
+  if(ok) flag('היום נוקה ✓');
+};
+
+// ---- settings modal ----
+document.getElementById('yearSelect').innerHTML = YEARS.map(y=>`<option value="${y}">${y}</option>`).join('');
+document.getElementById('yearSelect').onchange = (e) => {
+  currentYear = parseInt(e.target.value, 10);
+  render();
+};
+
+document.getElementById('gearBtn').onclick = () => {
+  document.getElementById('setBase').value = settings.base;
+  document.getElementById('setTravel').value = settings.travel;
+  document.getElementById('setNiTravelRate').value = settings.niTravelRate;
+  document.getElementById('setNiTravelTrips').value = settings.niTravelTrips;
+  document.getElementById('setNiTravelFactor').value = settings.niTravelFactor;
+  document.getElementById('setOvertimeRate').value = settings.overtimeRate;
+  document.getElementById('setOtThreshold').value = settings.otThreshold;
+  document.getElementById('setOtPct').value = settings.otPct;
+  document.getElementById('setHolidayPct').value = settings.holidayPct;
+  document.getElementById('setShabbatPct').value = settings.shabbatPct;
+  document.getElementById('settingsOverlay').classList.add('show');
+};
+document.getElementById('btnCancelSettings').onclick = () => {
+  document.getElementById('settingsOverlay').classList.remove('show');
+};
+document.getElementById('settingsOverlay').addEventListener('click', (e)=>{ if(e.target.id==='settingsOverlay') document.getElementById('settingsOverlay').classList.remove('show'); });
+
+document.getElementById('btnSaveSettings').onclick = async () => {
+  const base = parseFloat(document.getElementById('setBase').value);
+  const travel = parseFloat(document.getElementById('setTravel').value);
+  const niTravelRate = parseFloat(document.getElementById('setNiTravelRate').value);
+  const niTravelTrips = parseFloat(document.getElementById('setNiTravelTrips').value);
+  const niTravelFactor = parseFloat(document.getElementById('setNiTravelFactor').value);
+  const overtimeRate = parseFloat(document.getElementById('setOvertimeRate').value);
+  const otThreshold = parseFloat(document.getElementById('setOtThreshold').value);
+  const otPct = parseFloat(document.getElementById('setOtPct').value);
+  const holidayPct = parseFloat(document.getElementById('setHolidayPct').value);
+  const shabbatPct = parseFloat(document.getElementById('setShabbatPct').value);
+  if(!isNaN(base)) settings.base = base;
+  if(!isNaN(travel)) settings.travel = travel;
+  if(!isNaN(niTravelRate)) settings.niTravelRate = niTravelRate;
+  if(!isNaN(niTravelTrips)) settings.niTravelTrips = niTravelTrips;
+  if(!isNaN(niTravelFactor)) settings.niTravelFactor = niTravelFactor;
+  if(!isNaN(overtimeRate)) settings.overtimeRate = overtimeRate;
+  if(!isNaN(otThreshold)) settings.otThreshold = otThreshold;
+  if(!isNaN(otPct)) settings.otPct = otPct;
+  if(!isNaN(holidayPct)) settings.holidayPct = holidayPct;
+  if(!isNaN(shabbatPct)) settings.shabbatPct = shabbatPct;
+  const ok = await persistSettings();
+  document.getElementById('settingsOverlay').classList.remove('show');
+  render();
+  if(ok) flag('הגדרות נשמרו ✓');
+};
+
+document.getElementById('syncBtn').onclick = async () => {
+  const ok1 = await persistOverrides();
+  const ok2 = await persistSettings();
+  if(ok1 && ok2) flag('סונכרן ✓');
+};
+
+// ---- backup / restore ----
+document.getElementById('backupBtn').onclick = () => {
+  const data = JSON.stringify({ overrides, settings });
+  document.getElementById('backupOut').value = data;
+  document.getElementById('backupIn').value = '';
+  document.getElementById('backupOverlay').classList.add('show');
+};
+document.getElementById('btnCloseBackup').onclick = () => {
+  document.getElementById('backupOverlay').classList.remove('show');
+};
+document.getElementById('backupOverlay').addEventListener('click', (e)=>{ if(e.target.id==='backupOverlay') document.getElementById('backupOverlay').classList.remove('show'); });
+
+document.getElementById('btnCopyBackup').onclick = async () => {
+  const ta = document.getElementById('backupOut');
+  ta.select();
+  ta.setSelectionRange(0, 999999);
+  try{
+    await navigator.clipboard.writeText(ta.value);
+    flag('הועתק ✓');
+  }catch(e){
+    try{ document.execCommand('copy'); flag('הועתק ✓'); }
+    catch(e2){ flag('⚠ ההעתקה נכשלה — סמנו ידנית והעתיקו', true); }
+  }
+};
+
+document.getElementById('btnRestoreBackup').onclick = async () => {
+  const raw = document.getElementById('backupIn').value.trim();
+  if(!raw){ flag('⚠ הדביקו טקסט גיבוי קודם', true); return; }
+  try{
+    const parsed = JSON.parse(raw);
+    if(!parsed || typeof parsed !== 'object') throw new Error('bad shape');
+    overrides = migrateOverrideKeys(parsed.overrides || {});
+    settings = { ...defaultSettings, ...(parsed.settings || {}) };
+    document.getElementById('backupOverlay').classList.remove('show');
+    render();
+    flag('שוחזר ✓');
+    // best effort — also try to push the restored data back to persistent storage
+    persistOverrides();
+    persistSettings();
+  }catch(e){
+    flag('⚠ הטקסט שהודבק אינו תקין', true);
+  }
+};
+
+populateTimeSelects();
+
+// ---- punch in / punch out ----
+let punchInTime = null;
+
+function fmtTime(date){
+  return `${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}`;
+}
+function todayKey(){
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+function updatePunchBar(){
+  const el = document.getElementById('punchTime');
+  if(punchInTime){
+    el.innerHTML = `כניסה: <strong>${fmtTime(punchInTime)}</strong>`;
+  } else {
+    el.textContent = '';
+  }
+}
+
+document.getElementById('punchInBtn').onclick = async () => {
+  punchInTime = new Date();
+  const t = fmtTime(punchInTime);
+  const [year, m, day] = todayKey().split('-').map(Number);
+
+  // navigate to today
+  current = m; currentYear = year;
+
+  // get existing entry (keep end time if already set)
+  const key = overrideKey(m, day);
+  const existing = getEntry(m, day);
+  const endT = (existing && existing.e) ? existing.e : shiftTimeByHours(t, 10);
+  overrides[key] = {
+    s: t,
+    e: endT,
+    ni: existing ? !!existing.ni : false,
+    vac: false
+  };
+
+  await persistOverrides();
+  render();
+  updatePunchBar();
+  flag(`כניסה נרשמה: ${t} ✓`);
+};
+
+document.getElementById('punchOutBtn').onclick = async () => {
+  const now = new Date();
+  const t = fmtTime(now);
+  const [year, m, day] = todayKey().split('-').map(Number);
+
+  // navigate to today
+  current = m; currentYear = year;
+
+  const key = overrideKey(m, day);
+  const existing = getEntry(m, day);
+  const startT = (existing && existing.s) ? existing.s : t;
+
+  // clamp to midnight: if end <= start treat as same-day clamp
+  const [sh, smi] = startT.split(':').map(Number);
+  const [eh, emi] = t.split(':').map(Number);
+  const endClamped = (eh*60+emi < sh*60+smi) ? '0:00' : t;
+
+  overrides[key] = {
+    s: startT,
+    e: endClamped,
+    ni: existing ? !!existing.ni : false,
+    vac: false
+  };
+
+  await persistOverrides();
+  punchInTime = null;
+  render();
+  updatePunchBar();
+  flag(`יציאה נרשמה: ${t} ✓`);
+};
+
+loadState();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
